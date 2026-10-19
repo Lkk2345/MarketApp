@@ -1,0 +1,14 @@
+﻿CREATE PROCEDURE dbo.sp_GetEmployeeById
+    @Id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF @Id IS NULL 
+        THROW 50030, 'Employee ID is required.', 1;
+
+    SELECT Id, AccountId, ManagerEmployeeId, EmployeeCode, HireDate, 
+           IsDeleted, CreateDate, UpdateDate, FirstName, LastName, Email, PhoneNumber
+    FROM dbo.Employees
+    WHERE Id = @Id AND IsDeleted = 0; 
+END;
