@@ -1,0 +1,47 @@
+﻿-- =========================================================
+-- ClearDatabase.txt
+-- Market-v2 / branch: market-v2-develop-AG
+-- IMPORTANT:
+-- Do not use GO here. DatabaseHelper executes this file with
+-- SqlCommand.ExecuteNonQuery() as one batch.
+-- =========================================================
+
+-- Break self-referencing foreign keys first.
+UPDATE dbo.Employees
+SET ManagerEmployeeId = NULL;
+
+UPDATE dbo.Categories
+SET ParentId = NULL;
+
+-- Transaction / stock tables.
+DELETE FROM dbo.StockMovements;
+DELETE FROM dbo.SaleItems;
+DELETE FROM dbo.Sales;
+
+-- Product child tables.
+DELETE FROM dbo.ProductAttributeValues;
+DELETE FROM dbo.CategoryAttributes;
+
+-- Employee child table.
+DELETE FROM dbo.EmployeeRoles;
+
+-- Main entities.
+DELETE FROM dbo.Products;
+DELETE FROM dbo.Employees;
+
+-- Parent / reference entities.
+DELETE FROM dbo.Accounts;
+DELETE FROM dbo.Roles;
+DELETE FROM dbo.Attributes;
+DELETE FROM dbo.Categories;
+
+-- Reset identity values.
+DBCC CHECKIDENT ('dbo.StockMovements', RESEED, 0);
+DBCC CHECKIDENT ('dbo.SaleItems',      RESEED, 0);
+DBCC CHECKIDENT ('dbo.Sales',          RESEED, 0);
+DBCC CHECKIDENT ('dbo.Products',       RESEED, 0);
+DBCC CHECKIDENT ('dbo.Employees',      RESEED, 0);
+DBCC CHECKIDENT ('dbo.Accounts',       RESEED, 0);
+DBCC CHECKIDENT ('dbo.Roles',          RESEED, 0);
+DBCC CHECKIDENT ('dbo.Attributes',     RESEED, 0);
+DBCC CHECKIDENT ('dbo.Categories',     RESEED, 0);

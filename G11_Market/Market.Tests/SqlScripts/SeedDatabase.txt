@@ -1,0 +1,314 @@
+﻿-- =========================================================
+-- SeedDatabase.txt
+-- Market-v2 / branch: market-v2-develop-AG
+-- IMPORTANT:
+-- Do not use GO here. DatabaseHelper executes this file with
+-- SqlCommand.ExecuteNonQuery() as one batch.
+-- =========================================================
+
+DECLARE @SeedNow DATETIME = GETUTCDATE();
+
+-- =========================================================
+-- Accounts
+-- New schema:
+-- Email / AccountType / FirstName / LastName are NOT in Accounts.
+-- IsActive is required.
+-- Expected Ids: 1, 2, 3
+-- =========================================================
+SET IDENTITY_INSERT dbo.Accounts ON;
+
+INSERT INTO dbo.Accounts
+(
+    Id,
+    Username,
+    PasswordHash,
+    IsDeleted,
+    IsActive,
+    FailedLoginAttempts,
+    LastLoginAtUtc,
+    LockoutEndUtc
+)
+VALUES
+    (1, 'employee_one',   'hash_employee_1', 0, 1, 0, NULL, NULL),
+    (2, 'employee_two',   'hash_employee_2', 0, 1, 0, NULL, NULL),
+    (3, 'employee_three', 'hash_employee_3', 0, 1, 0, NULL, NULL);
+
+SET IDENTITY_INSERT dbo.Accounts OFF;
+
+
+-- =========================================================
+-- Roles
+-- Expected Ids: 1, 2, 3
+-- =========================================================
+SET IDENTITY_INSERT dbo.Roles ON;
+
+INSERT INTO dbo.Roles
+(
+    Id,
+    Name,
+    Description,
+    IsDeleted
+)
+VALUES
+    (1, 'Cashier', 'Handles sales and payments', 0),
+    (2, 'Inventory Manager', 'Manages stock and product quantities', 0),
+    (3, 'Administrator', 'Manages system configuration', 0);
+
+SET IDENTITY_INSERT dbo.Roles OFF;
+
+
+-- =========================================================
+-- Employees
+-- New schema:
+-- ContactEmail -> Email
+-- Email and PhoneNumber are required.
+-- AccountId is UNIQUE (1 account -> 1 employee).
+-- Expected Ids: 1, 2, 3
+-- =========================================================
+SET IDENTITY_INSERT dbo.Employees ON;
+
+INSERT INTO dbo.Employees
+(
+    Id,
+    AccountId,
+    ManagerEmployeeId,
+    EmployeeCode,
+    HireDate,
+    IsDeleted,
+    FirstName,
+    LastName,
+    Email,
+    PhoneNumber
+)
+VALUES
+    (1, 1, NULL, 'EMP001', '2024-01-10', 0, 'Employee', 'One',   'employee.one@test.com',   '555100001');
+
+INSERT INTO dbo.Employees
+(
+    Id,
+    AccountId,
+    ManagerEmployeeId,
+    EmployeeCode,
+    HireDate,
+    IsDeleted,
+    FirstName,
+    LastName,
+    Email,
+    PhoneNumber
+)
+VALUES
+    (2, 2, 1, 'EMP002', '2024-02-15', 0, 'Employee', 'Two',   'employee.two@test.com',   '555100002'),
+    (3, 3, 1, 'EMP003', '2024-03-20', 0, 'Employee', 'Three', 'employee.three@test.com', '555100003');
+
+SET IDENTITY_INSERT dbo.Employees OFF;
+
+
+-- =========================================================
+-- EmployeeRoles
+-- Composite PK: EmployeeId + RoleId
+-- =========================================================
+INSERT INTO dbo.EmployeeRoles (EmployeeId, RoleId)
+VALUES
+    (1, 3), -- Administrator
+    (2, 2), -- Inventory Manager
+    (3, 1); -- Cashier
+
+
+-- =========================================================
+-- Categories
+-- Expected Ids: 1, 2, 3
+-- =========================================================
+SET IDENTITY_INSERT dbo.Categories ON;
+
+INSERT INTO dbo.Categories
+(
+    Id,
+    ParentId,
+    CategoryName,
+    Description,
+    IsDeleted
+)
+VALUES
+    (1, NULL, 'Electronics', 'Electronic devices and accessories', 0);
+
+INSERT INTO dbo.Categories
+(
+    Id,
+    ParentId,
+    CategoryName,
+    Description,
+    IsDeleted
+)
+VALUES
+    (2, 1, 'Computers', 'Computers and related products', 0),
+    (3, 1, 'Mobile Phones', 'Mobile phones and accessories', 0);
+
+SET IDENTITY_INSERT dbo.Categories OFF;
+
+
+-- =========================================================
+-- Attributes
+-- AttributeType:
+-- 1 = Text
+-- 2 = Number
+-- 3 = Date
+-- 4 = Boolean
+-- Expected Ids: 1, 2, 3
+-- =========================================================
+SET IDENTITY_INSERT dbo.Attributes ON;
+
+INSERT INTO dbo.Attributes
+(
+    Id,
+    AttributeName,
+    AttributeType,
+    IsDeleted
+)
+VALUES
+    (1, 'Brand', 1, 0),
+    (2, 'Weight', 2, 0),
+    (3, 'WarrantyEndDate', 3, 0);
+
+SET IDENTITY_INSERT dbo.Attributes OFF;
+
+
+-- =========================================================
+-- CategoryAttributes
+-- Each seeded product below has one valid attribute assignment.
+-- =========================================================
+INSERT INTO dbo.CategoryAttributes
+(
+    CategoryId,
+    AttributeId,
+    OrderPosition
+)
+VALUES
+    (1, 1, 1),
+    (2, 2, 1),
+    (3, 3, 1);
+
+
+-- =========================================================
+-- Products
+-- Expected Ids: 1, 2, 3
+-- =========================================================
+SET IDENTITY_INSERT dbo.Products ON;
+
+INSERT INTO dbo.Products
+(
+    Id,
+    CategoryId,
+    ProductName,
+    Price,
+    IsDeleted
+)
+VALUES
+    (1, 1, 'Samsung Monitor', 1200.00, 0),
+    (2, 2, 'Lenovo Laptop',   2500.00, 0),
+    (3, 3, 'iPhone 15',       3000.00, 0);
+
+SET IDENTITY_INSERT dbo.Products OFF;
+
+
+-- =========================================================
+-- ProductAttributeValues
+-- New schema requires EXACTLY ONE value column to be non-null.
+-- =========================================================
+INSERT INTO dbo.ProductAttributeValues
+(
+    ProductId,
+    AttributeId,
+    TextValue,
+    NumberValue,
+    DateValue,
+    BooleanValue
+)
+VALUES
+    (1, 1, 'Samsung', NULL, NULL, NULL),
+    (2, 2, NULL, 2.50, NULL, NULL),
+    (3, 3, NULL, NULL, '2027-12-31', NULL);
+
+
+-- =========================================================
+-- Sales
+-- Status:
+-- 0 = Draft
+-- 1 = Completed
+-- 2 = Cancelled
+--
+-- Tests rely on:
+-- Sale 1 = Completed
+-- Sale 2 = Draft
+-- Sale 3 = Cancelled
+-- ========================================================= 
+SET IDENTITY_INSERT dbo.Sales ON;
+
+INSERT INTO dbo.Sales
+(
+    Id,
+    CreatedEmployeeId,
+    CancelledByEmployeeId,
+    Status,
+    CreatedDate,
+    CancelledDate,
+    CancelReason
+)
+VALUES
+    (1, 1, NULL, 1, @SeedNow, NULL, NULL),
+    (2, 2, NULL, 0, @SeedNow, NULL, NULL),
+    (3, 3, 1,    2, @SeedNow, @SeedNow, 'Cancelled during seed data setup');
+
+SET IDENTITY_INSERT dbo.Sales OFF;
+
+
+-- =========================================================
+-- SaleItems
+-- Tests rely on:
+-- Sale 1 -> two items (Ids 1,2)
+-- Sale 2 -> draft item Id 3
+-- =========================================================
+SET IDENTITY_INSERT dbo.SaleItems ON;
+
+INSERT INTO dbo.SaleItems
+(
+    Id,
+    SaleId,
+    ProductId,
+    Quantity,
+    UnitPrice,
+    DiscountAmount
+)
+VALUES
+    (1, 1, 1, 2, 1200.00,   0.00),
+    (2, 1, 2, 1, 2500.00, 100.00),
+    (3, 2, 3, 3, 3000.00,   0.00);
+
+SET IDENTITY_INSERT dbo.SaleItems OFF;
+
+
+-- =========================================================
+-- StockMovements
+-- MovementType:
+-- 0 = Sale
+-- 1 = Refill
+-- 2 = Adjustment
+-- =========================================================
+SET IDENTITY_INSERT dbo.StockMovements ON;
+
+INSERT INTO dbo.StockMovements
+(
+    Id,
+    ProductId,
+    MovementType,
+    QuantityChange,
+    QuantityBefore,
+    SaleItemId,
+    ChangedByEmployeeId,
+    Reason
+)
+VALUES
+    (1, 1, 0, -2, 10, 1,    1, 'Seed sale movement for product 1'),
+    (2, 2, 1, 20,  5, NULL, 2, 'Seed refill movement for product 2'),
+    (3, 3, 2, -1, 15, NULL, 3, 'Seed adjustment movement for product 3');
+
+SET IDENTITY_INSERT dbo.StockMovements OFF;
